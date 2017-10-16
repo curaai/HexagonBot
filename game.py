@@ -10,11 +10,10 @@ class Game:
     # rect : 해당 사각형 만큼을 이미지 캡처해온다.
     def __init__(self, rect):
         self.rect = rect
-
-        self.current_reward = 0
-
         self.action_list = [L, 0, R]
-        self.current_action = 1
+
+    def init_state(self):
+        self._get_state()
 
     # 이미지 캡쳐
     def _get_state(self):
@@ -37,3 +36,16 @@ class Game:
         height_middle = int(gray.shape[0] / 2)
         is_black = countNonZero(gray[height_middle - 15: height_middle + 15, :30]) == 0
         return is_black
+
+    # move based on action, if gameover - reward else + reward
+    def step(self, action):
+        self._move(action)
+        stable_reward = 0.01 if action == 1 else 0
+
+        done = self._is_gameover()
+        if done:
+            reward = -2
+        else:
+            reward = stable_reward + 1
+
+        return self._get_state(), reward, done

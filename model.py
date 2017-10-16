@@ -1,11 +1,11 @@
 import tensorflow as tf
 import numpy as np
-import cv2
 import os
 from random import sample
 from collections import deque
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
 
 class DQN:
     def __init__(self, sess, learning_rate, batch_size, width, height, n_action, channel=3):
