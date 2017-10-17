@@ -15,7 +15,7 @@ class Game:
         self.action_list = [L, 0, R]
 
         self.before_action = -1
-        self.timer = Timer(0.01, self._key_press, [self.before_action])
+        self.timer = Timer(0.01, self._key_daapress, [self.before_action])
 
     def init_state(self):
         self._get_state()
@@ -29,12 +29,10 @@ class Game:
 
     # action이 가만히가 아니라면 움직임
     def _move(self, action):
-        if action != self.before_action != 1:
-            ReleaseKey(self.action_list[self.before_action])
-
         if action is not 1:
             PressKey(self.action_list[action])
-            self.before_action = action
+            sleep(0.1)
+            ReleaseKey(self.action_list[action])
 
     # 헥사곤 게임종료시 왼쪽 중간 사각형이 검은색인지 체크
     def _is_gameover(self):
@@ -46,12 +44,12 @@ class Game:
         shape = array.shape
 
         a = black[0].shape[0]
-        return a / (shape[0] * shape[1]) >= 0.85
+        return a / (shape[0] * shape[1]) >= 0.75
 
     # move based on action, if gameover - reward else + reward
     def step(self, action):
         self._move(action)
-        stable_reward = -0.01 if action == 1 else 0
+        stable_reward = 0.01 if action == 1 else 0
 
         done = self._is_gameover()
         if done:
@@ -60,6 +58,7 @@ class Game:
             reward = stable_reward + 0.01
 
         self._get_state()
+
         return reward, done
 
 

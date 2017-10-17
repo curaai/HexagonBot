@@ -13,7 +13,7 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--train', default=True, type=bool, help="train or playing")
     parser.add_argument('-w', '--width', default=772, type=int, help="width for capturing rect")
     parser.add_argument('-he', '--height', default=500, type=int, help="height for capturing rect")
-    parser.add_argument('-lr', '--learning_rate', default=0.01, type=float, help='Learning rate for training')
+    parser.add_argument('-lr', '--learning_rate', default=0.0001, type=float, help='Learning rate for training')
     parser.add_argument('-bs', '--batch_size', default=20, type=int, help="batch size")
 
     parser.add_argument('-e', '--max_episode', default=10000, type=int, help="max_episode for training")
@@ -38,8 +38,10 @@ if __name__ == '__main__':
             game = Game((0, 25, width, height))
             dqn = DQN(sess, args.learning_rate, args.batch_size, 200, 200, args.action_size)
 
-            saver = tf.train.Saver()
             sess.run(tf.global_variables_initializer())
+
+            saver = tf.train.Saver()
+            saver.restore(sess, args.save_model)
 
             epsilon = 1.0
             frame_count = 0
@@ -61,6 +63,8 @@ if __name__ == '__main__':
                 a = rgb2gray(game.state)
                 dqn.init_state(rgb2gray(game.state))
 
+                start = time.time()
+                count = 0
                 while not done:
                     if np.random.rand() < epsilon:
                         action = random.randrange(args.action_size)
@@ -73,12 +77,11 @@ if __name__ == '__main__':
                     reward, done = game.step(action)
                     total_reward += reward
 
-                    dqn.save_memory(action, reward, done, rgb2gray(game.state))
+                    if start - time.time() > 1:
+                        dqn.save_memory(action, reward, done, rgb2gray(game.state))
+                        count += 1
 
-                    if done:
-                        print("its over")
-                        
-                    if frame_count > args.observe and frame_count % args.train_term == 0:
+                    if frame_count > args.observe and frame_count % args.train_term == 0 and count > 50:
                         dqn.train()
 
                     if frame_count % args.update_term == 0:
