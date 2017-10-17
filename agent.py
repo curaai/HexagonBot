@@ -6,13 +6,14 @@ import argparse
 
 from game import Game
 from model import DQN
+from directkeys import PressKey, ReleaseKey, ENTER, L, R
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-t', '--train', type=bool, help="train or playing")
-    parser.add_argument('-w', '--width', default=770, type=int, help="width for capturing rect")
-    parser.add_argument('-h', '--height', default=500, type=int, help="height for capturing rect")
-    parser.add_argument('-lr', '--learning_rate', default=0.001, type=float, help='Learning rate for training')
+    parser.add_argument('-t', '--train', default=True, type=bool, help="train or playing")
+    parser.add_argument('-w', '--width', default=772, type=int, help="width for capturing rect")
+    parser.add_argument('-he', '--height', default=500, type=int, help="height for capturing rect")
+    parser.add_argument('-lr', '--learning_rate', default=0.01, type=float, help='Learning rate for training')
     parser.add_argument('-bs', '--batch_size', default=20, type=int, help="batch size")
 
     parser.add_argument('-e', '--max_episode', default=10000, type=int, help="max_episode for training")
@@ -20,17 +21,22 @@ if __name__ == '__main__':
     parser.add_argument('-tt', '--train_term', default=4, type=int, help="Train term ")
     parser.add_argument('-o', '--observe', default=100, type=int, help="Until to start network")
     parser.add_argument('-a', '--action_size', default=3, type=int, help="Size of action")
-
     parser.add_argument('-s', '--save_model', default='save/agent.cpkt', help="Saved trained model")
 
     args = parser.parse_args()
+
+
+    def rgb2gray(rgb) -> float:
+        r, g, b = rgb[:, :, 0], rgb[:, :, 1], rgb[:, :, 2]
+        gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
+        return gray
 
     # train
     if args.train:
         with tf.Session() as sess:
             width, height = args.width, args.height
             game = Game((0, 25, width, height))
-            dqn = DQN(sess, args.learning_rate, args.batch_size, width, height, )
+            dqn = DQN(sess, args.learning_rate, args.batch_size, 200, 200, args.action_size)
 
             saver = tf.train.Saver()
             sess.run(tf.global_variables_initializer())
@@ -42,6 +48,9 @@ if __name__ == '__main__':
             for i in range(4)[::-1]:
                 print(i)
                 time.sleep(1)
+            PressKey(ENTER)
+            time.sleep(0.05)
+            ReleaseKey(ENTER)
 
             print("Learning Start !!!")
             for episode in range(args.max_episode):
@@ -49,7 +58,8 @@ if __name__ == '__main__':
                 total_reward = 0
 
                 game.init_state()
-                dqn.init_state(game.state)
+                a = rgb2gray(game.state)
+                dqn.init_state(rgb2gray(game.state))
 
                 while not done:
                     if np.random.rand() < epsilon:
@@ -60,11 +70,14 @@ if __name__ == '__main__':
                     if epsilon > args.observe:
                         epsilon -= 0.001
 
-                    new_state, reward, done = game.step(action)
+                    reward, done = game.step(action)
                     total_reward += reward
 
-                    dqn.save_memory(action, reward, done, new_state)
+                    dqn.save_memory(action, reward, done, rgb2gray(game.state))
 
+                    if done:
+                        print("its over")
+                        
                     if frame_count > args.observe and frame_count % args.train_term == 0:
                         dqn.train()
 
@@ -72,7 +85,9 @@ if __name__ == '__main__':
                         dqn.copy2target()
 
                     frame_count += 1
-
+                PressKey(ENTER)
+                time.sleep(0.1)
+                ReleaseKey(ENTER)
 
                 if episode % 10 == 0:
                     print("Iteration: {}, Score: {}".format(episode, total_reward))
@@ -81,8 +96,4 @@ if __name__ == '__main__':
 
                 if episode % 100 == 0:
                     saver.save(sess, args.save_model)
-
-
-
-
 

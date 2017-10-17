@@ -5,6 +5,7 @@ SendInput = ctypes.windll.user32.SendInput
 
 L = 0x1E
 R = 0x20
+ENTER = 0x1C
 
 # C struct redefinitions
 PUL = ctypes.POINTER(ctypes.c_ulong)

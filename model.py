@@ -8,7 +8,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 
 class DQN:
-    def __init__(self, sess, learning_rate, batch_size, width, height, n_action, channel=3):
+    def __init__(self, sess, learning_rate, batch_size, width, height, n_action, channel=4):
         self.GAMMA = 0.99
         self.BUFFER_SIZE = 3000
         self.ACTION_SIZE = n_action
@@ -23,7 +23,7 @@ class DQN:
         self.height = height
         self.channel = channel
 
-        self.X = tf.placeholder(tf.float32, [None, self.STATE_SIZE, height, width, channel])
+        self.X = tf.placeholder(tf.float32, [None, height, width, self.STATE_SIZE])
         self.Y = tf.placeholder(tf.float32, [None])
         self.A = tf.placeholder(tf.int32, [None])
 
@@ -46,9 +46,9 @@ class DQN:
     '''
     def _build_network(self, name):
         with tf.variable_scope(name):
-            model = tf.layers.conv2d(self.X, 32, [5, 5], padding='same', activation=tf.nn.relu)
+            model = tf.layers.conv2d(self.X, 32, [4, 4], padding='same', activation=tf.nn.relu)
             model = tf.layers.max_pooling2d(model, pool_size=[2, 2], strides=2)
-            model = tf.layers.conv2d(model, 64, [3, 3], padding='same', activation=tf.nn.relu)
+            model = tf.layers.conv2d(model, 32, [2, 2], padding='same', activation=tf.nn.relu)
             model = tf.layers.max_pooling2d(model, pool_size=[2, 2], strides=1)
             model = tf.contrib.layers.flatten(model)
 
@@ -86,8 +86,8 @@ class DQN:
 
     # save current situation
     def save_memory(self, action, reward, done, new_state):
-        new_state = np.reshape(new_state, (1, self.height, self.width, self.channel))
-        new_state = np.append(self.state[1:, :, :, :], new_state, axis=0)
+        new_state = np.reshape(new_state, (self.height, self.width, 1))
+        new_state = np.append(self.state[:, :, 1:], new_state, axis=2)
 
         # save  s, a, r, d, s`
         self.buffer.append((self.state, action, reward, done, new_state))
@@ -98,7 +98,8 @@ class DQN:
         self.state = new_state
 
     def init_state(self, state):
-        self.state = np.array([state for _ in range(self.STATE_SIZE)])
+        states = [state for _ in range(self.STATE_SIZE)]
+        self.state = np.stack(states, axis=2)
 
     # get random samples from buffer
     def _get_samples(self):
@@ -118,9 +119,9 @@ class DQN:
             if done[i]:
                 Y.append(reward[i])
             else:
-                Y.append(reward + self.GAMMA * np.max(target_Q_value[i]))
-
-        return self.sess.run(self.train_op, self.cost,
+                Y.append(reward[i] + self.GAMMA * np.max(target_Q_value[i]))
+        Y = np.array(Y)
+        return self.sess.run([self.train_op, self.cost],
                              feed_dict={
                                  self.X: state,
                                  self.A: action,
