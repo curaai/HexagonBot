@@ -15,7 +15,7 @@ class Game:
         self.action_list = [L, 0, R]
 
         self.before_action = -1
-        self.timer = Timer(0.01, self._key_daapress, [self.before_action])
+        self.timer = Timer(0.01, self._key_press, [self.before_action])
 
     def init_state(self):
         self._get_state()
@@ -49,13 +49,13 @@ class Game:
     # move based on action, if gameover - reward else + reward
     def step(self, action):
         self._move(action)
-        stable_reward = 0.01 if action == 1 else 0
+        stable_reward = 0.05 if action == 1 else 0
 
         done = self._is_gameover()
         if done:
-            reward = -2
+            reward = -10
         else:
-            reward = stable_reward + 0.01
+            reward = stable_reward + 1
 
         self._get_state()
 

@@ -113,13 +113,16 @@ class DQN:
         state, action, reward, done, new_state = self._get_samples()
 
         target_Q_value = self.sess.run(self.target_Q, feed_dict={self.X: new_state})
+        main_Q_value = self.sess.run(self.main_Q, feed_dict={self.X: new_state})
 
         Y = []
         for i in range(self.batch_size):
             if done[i]:
                 Y.append(reward[i])
             else:
-                Y.append(reward[i] + self.GAMMA * np.max(target_Q_value[i]))
+                # Double DQN
+                Y.append(reward[i] + self.GAMMA * target_Q_value[np.argmax(main_Q_value)])
+
         Y = np.array(Y)
         return self.sess.run([self.train_op, self.cost],
                              feed_dict={
